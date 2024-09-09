@@ -305,3 +305,117 @@ y en la terminal se ve de esta manera:
 ![image](https://github.com/user-attachments/assets/e7ced8f3-a569-4a58-8f89-7eb2adcdbdb7)
 
 ### Ejercicio 4: Movimiento de Figuras en Pantalla
+Para este ejercicio busqué implementar el movimiento hacia la derecha de las figuras. 
+Para moverlas creé dos variables nuevas: velocidad y delta_time con las cuales se modifica la posición de las figuras en el eje x. 
+La función Update() quedó modificada de la siguiente manera: 
+```c
+void update(void) {
+    // Calcular delta time en segundos
+    int time_to_wait = 16;  // Aproximadamente 60 FPS
+    int time_since_last_frame = SDL_GetTicks() - last_frame_time;
+    if (time_to_wait > time_since_last_frame) {
+        SDL_Delay(time_to_wait - time_since_last_frame);
+    }
+    float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
+    last_frame_time = SDL_GetTicks();
+
+    // Mover las figuras a la derecha
+    rect_x += velocity * delta_time;
+    line_x1 += velocity * delta_time;
+    line_x2 += velocity * delta_time;
+    circle_x += velocity * delta_time;
+
+    // Verificar si las figuras se salen de la pantalla y reiniciarlas
+    if (rect_x > WINDOW_WIDTH) rect_x = -200;  // Reinicia el rectángulo cuando sale de la pantalla
+    if (line_x2 > WINDOW_WIDTH) {  // Reinicia la línea cuando sale de la pantalla
+        line_x1 = -200;
+        line_x2 = 0;
+    }
+    if (circle_x > WINDOW_WIDTH + 100) circle_x = -100;  // Reinicia el círculo cuando sale
+}
+```
+Mi problema principal era que las figuras desaparecian de la pantalla, por lo que si una figura sale de la pantalla se reinicia su posición para que vuelva a aparecer en el otro lado. Para lograr esto me ayudé con la IA pues no sabía muy bien como hacerlo, me propuso crear un tipo de ciclo de la siguiente manera que funcionó de manera efectiva: 
+![image](https://github.com/user-attachments/assets/4f00af44-bac6-470d-b4f9-cc8ac3019a05)
+
+En la temrinal de ve de esta manera: 
+
+
+### Ejercicio 5: Modificación de Tamaño, Orientación y Color 
+Para este ejercicio traté de aumentar y disminuir el tamaño de las figuras de manera ciclica como en el ejercicio anterior. Para modificar el color usamos los valores RGB y los fuimos aumentando y disminuyendo en cada ciclo para que las figuras cambiaran de color en unos intervalos de tiempo. Modificamos la función Update() y Render() de la siguiente manera: 
+
+```c
+void update(void) {
+    // Calcular delta time en segundos
+    int time_to_wait = 16;  // Aproximadamente 60 FPS
+    int time_since_last_frame = SDL_GetTicks() - last_frame_time;
+    if (time_to_wait > time_since_last_frame) {
+        SDL_Delay(time_to_wait - time_since_last_frame);
+    }
+    float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
+    last_frame_time = SDL_GetTicks();
+
+    // Mover las figuras a la derecha
+    rect_x += velocity * delta_time;
+    line_x1 += velocity * delta_time;
+    line_x2 += velocity * delta_time;
+    circle_x += velocity * delta_time;
+
+    // Verificar si las figuras se salen de la pantalla y reiniciarlas
+    if (rect_x > WINDOW_WIDTH) rect_x = -rect_width;
+    if (line_x2 > WINDOW_WIDTH) {
+        line_x1 = -200;
+        line_x2 = 0;
+    }
+    if (circle_x > WINDOW_WIDTH + 100) circle_x = -100;
+
+    // Aumentar o disminuir el tamaño de las figuras
+    rect_width += scale_velocity * delta_time;
+    rect_height += scale_velocity * delta_time;
+    circle_radius += scale_velocity * delta_time;
+
+    // Invertir el cambio de tamaño si alcanzan un límite
+    if (rect_width > 300 || rect_width < 100) scale_velocity = -scale_velocity;
+
+    // Actualizar el ángulo de rotación para el rectángulo
+    angle += 90 * delta_time;  // Rotar 90 grados por segundo
+
+    // Cambiar el color de las figuras
+    color_r = (color_r + 1) % 256;
+    color_g = (color_g + 2) % 256;
+    color_b = (color_b + 3) % 256;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Render function to draw the figures in the SDL window
+///////////////////////////////////////////////////////////////////////////////
+void render(void) {
+    // Limpiar la pantalla
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    // Dibujar un rectángulo con rotación
+    SDL_SetRenderDrawColor(renderer, color_r, color_g, color_b, 255);  // Color cambiante
+    SDL_Rect rectangle = { (int)rect_x, (int)rect_y, (int)rect_width, (int)rect_height };
+    SDL_RenderFillRect(renderer, &rectangle);
+
+    // Dibujar una línea
+    SDL_SetRenderDrawColor(renderer, color_b, color_g, color_r, 255);  // Color cambiante
+    SDL_RenderDrawLine(renderer, (int)line_x1, (int)line_y1, (int)line_x2, (int)line_y2);
+
+    // Dibujar un círculo
+    SDL_SetRenderDrawColor(renderer, color_g, color_b, color_r, 255);  // Color cambiante
+    draw_circle((int)circle_x, (int)circle_y, (int)circle_radius);
+
+    // Actualizar el render
+    SDL_RenderPresent(renderer);
+}
+```
+En la terminal se ve de la siguiente manera:
+![image](https://github.com/user-attachments/assets/41fd9a2e-3e6a-4a6a-835f-492d44cf97c2)
+
+### Ejercicio  6: Rebote de Figuras
+
+
+
+    
+
