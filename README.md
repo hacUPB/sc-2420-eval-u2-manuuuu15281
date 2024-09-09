@@ -338,6 +338,7 @@ Mi problema principal era que las figuras desaparecian de la pantalla, por lo qu
 ![image](https://github.com/user-attachments/assets/4f00af44-bac6-470d-b4f9-cc8ac3019a05)
 
 En la temrinal de ve de esta manera: 
+![image](https://github.com/user-attachments/assets/75b40b40-8fbd-42bb-82c5-5fd632786daa)
 
 
 ### Ejercicio 5: Modificación de Tamaño, Orientación y Color 
@@ -414,7 +415,91 @@ En la terminal se ve de la siguiente manera:
 ![image](https://github.com/user-attachments/assets/41fd9a2e-3e6a-4a6a-835f-492d44cf97c2)
 
 ### Ejercicio  6: Rebote de Figuras
+Para este ejercicio usamos la función detect_collision 
+```c
+void update(void) {
+    // Calcular delta time en segundos
+    float delta_time = (SDL_GetTicks() - last_frame_time) / 1000.0f;
+    last_frame_time = SDL_GetTicks();
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Movimiento y rebote contra las paredes
+    ///////////////////////////////////////////////////////////////////////////
+    // Actualizar rectángulo
+    rect_x += rect_vel_x * delta_time;
+    rect_y += rect_vel_y * delta_time;
+    if (rect_x <= 0 || rect_x + rect_width >= WINDOW_WIDTH) rect_vel_x = -rect_vel_x;
+    if (rect_y <= 0 || rect_y + rect_height >= WINDOW_HEIGHT) rect_vel_y = -rect_vel_y;
+
+    // Actualizar círculo
+    circle_x += circle_vel_x * delta_time;
+    circle_y += circle_vel_y * delta_time;
+    if (circle_x - circle_radius <= 0 || circle_x + circle_radius >= WINDOW_WIDTH) circle_vel_x = -circle_vel_x;
+    if (circle_y - circle_radius <= 0 || circle_y + circle_radius >= WINDOW_HEIGHT) circle_vel_y = -circle_vel_y;
+
+    // Actualizar línea (se puede representar por un rectángulo para colisiones)
+    float line_width = line_x2 - line_x1;
+    float line_height = line_y2 - line_y1;
+    line_x1 += line_vel_x * delta_time;
+    line_y1 += line_vel_y * delta_time;
+    line_x2 += line_vel_x * delta_time;
+    line_y2 += line_vel_y * delta_time;
+    if (line_x1 <= 0 || line_x2 >= WINDOW_WIDTH) line_vel_x = -line_vel_x;
+    if (line_y1 <= 0 || line_y2 >= WINDOW_HEIGHT) line_vel_y = -line_vel_y;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Detección de colisiones entre figuras
+    ///////////////////////////////////////////////////////////////////////////
+    // Rectángulo y círculo
+    if (detect_collision(rect_x, rect_y, rect_width, rect_height, circle_x - circle_radius, circle_y - circle_radius, circle_radius * 2, circle_radius * 2)) {
+        rect_vel_x = -rect_vel_x;
+        rect_vel_y = -rect_vel_y;
+        circle_vel_x = -circle_vel_x;
+        circle_vel_y = -circle_vel_y;
+    }
+
+    // Rectángulo y línea
+    if (detect_collision(rect_x, rect_y, rect_width, rect_height, line_x1, line_y1, line_width, line_height)) {
+        rect_vel_x = -rect_vel_x;
+        rect_vel_y = -rect_vel_y;
+        line_vel_x = -line_vel_x;
+        line_vel_y = -line_vel_y;
+    }
+
+    // Círculo y línea
+    if (detect_collision(circle_x - circle_radius, circle_y - circle_radius, circle_radius * 2, circle_radius * 2, line_x1, line_y1, line_width, line_height)) {
+        circle_vel_x = -circle_vel_x;
+        circle_vel_y = -circle_vel_y;
+        line_vel_x = -line_vel_x;
+        line_vel_y = -line_vel_y;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Render function to draw the figures in the SDL window
+///////////////////////////////////////////////////////////////////////////////
+void render(void) {
+    // Limpiar la pantalla
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    // Dibujar un rectángulo
+    SDL_SetRenderDrawColor(renderer, color_r, color_g, color_b, 255);  // Color cambiante
+    SDL_Rect rectangle = { (int)rect_x, (int)rect_y, (int)rect_width, (int)rect_height };
+    SDL_RenderFillRect(renderer, &rectangle);
+
+    // Dibujar una línea
+    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);  // Color fijo
+    SDL_RenderDrawLine(renderer, (int)line_x1, (int)line_y1, (int)line_x2, (int)line_y2);
+
+    // Dibujar un círculo
+    SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);  // Color fijo
+    draw_circle((int)circle_x, (int)circle_y, (int)circle_radius);
+
+    // Actualizar el render
+    SDL_RenderPresent(renderer);
+}
+```
 
 
     
