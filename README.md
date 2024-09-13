@@ -500,7 +500,17 @@ void render(void) {
     SDL_RenderPresent(renderer);
 }
 ```
+## Actividad 2: Bolos aplicando Game Looping SDL2
+Para este juego pensé en simular un juego de bolos donde hayan ubicados unos cuadrados (bolos) en la parte superior de la aplicación de consola ubicados en una línea horizontal. En la parte inferior quiero ubicar la bola (circulo) centrada. A continuación las funcionalidades que debe tener el juego para simular correctamente los bolos: 
 
+**1. Para el movimiento de la Bola:**
 
+En esta parte investigué con la IA y me recomendó implementar un condicional con un switch dentro para manejar el movimiento de la bola. Además usé las funciones SDLK_LEFT, SDLK_RIGHT y SDLK_SPACE para que el sistema detecte las teclas que se presionan desde el teclado. Según las recomendaciones de la IA el código me quedó de la siguiente manera: 
+
+![image](https://github.com/user-attachments/assets/0cbb64cc-47ba-41c8-98ce-efd829f49da6)
+
+**2. Lanzamiento de la Bola**
+
+Para esta parte, decidí que la bola se lanzara cuando se presionaba la tecla space 
     
 
