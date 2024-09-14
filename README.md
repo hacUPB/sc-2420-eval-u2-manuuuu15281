@@ -511,6 +511,14 @@ En esta parte investigué con la IA y me recomendó implementar un condicional c
 
 **2. Lanzamiento de la Bola**
 
-Para esta parte, decidí que la bola se lanzara cuando se presionaba la tecla space 
+Para esta parte, decidí que la bola se lanzara de manera vertical cuando se presionaba la tecla space (para este momento aún no sabía como implementar el mouse). 
+Usamos la función Update para programar el movimiento  de la bola de la siguiente manera: 
+
+![image](https://github.com/user-attachments/assets/1d03f094-7214-4461-aa08-2ba577497fe8)
+
+El principal problema con ese ejercicio fue que los bolos (cuadrados) no rebotan entre si, solo se desaparecen cuando la bola colisiona alguno de los 5 bolos 
     
+![image](https://github.com/user-attachments/assets/2bf61274-dbc1-4cf0-bf21-fdd485f884e2)
+
+**3. Collisiones y Resets**
 
