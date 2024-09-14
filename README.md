@@ -762,6 +762,7 @@ La IA me ayudó efectivamente y esos dos cambios los hice de la siguiente manera
 **Implementación del mouse**
 
 En lugar de usar la tecla SPACE, ahora el evento SDL_MOUSEBUTTONDOWN se utiliza para detectar cuando se presiona un botón del mouse. Si la bola no ha sido lanzada, el clic del mouse hace que la bola se lance hacia arriba.
+
 ![image](https://github.com/user-attachments/assets/79d26cb3-68b5-435b-8b32-ba7f34974116)
 
 **Movimiento horizontal automático de la Bola**
@@ -771,9 +772,11 @@ La bola ahora se mueve automáticamente de izquierda a derecha y viceversa en la
 
 Por ultimo, y lo que más me costo hacer fue el rebote de los bolos entre si mismos al toque de la bola. Lo maximo que logré fue que reaccionaran al toque de la bola y que entre los mismos bloques reaccionen si se llegan a tocar luego de que alguno de ellos sea golpeado por la bola. Aunque logré que esto sucediera se me presento otro problema, los bolos agarran una alta velocidad cuando se golpean enttre si y se empiezan a desplazar por toda la pantalla, esto hace que se golpeen todos con todos y se descontrolan completamente, algo como esto: 
 De esta manera comienza el juego: 
+
 ![image](https://github.com/user-attachments/assets/c8722fb6-e010-40f3-82f0-11e321f8d683)
 
 y luego  de que la bola golpea un bolo y este golpea otro que esté cerca, comienza a verse así: 
+
 ![image](https://github.com/user-attachments/assets/d46c70a5-c057-40cc-8ef5-ea998b30abf7)
 
 Finalmente no logré que se arreglara pero conseguí corregir lo que el profe Henry me sugirió. La IA me ayudó a montar la parte del codigo de las coliisiones entre bolos ya que había que aplicar varios conceptos de física y geometria que aunque conozco no se muy bien como aplicarlos en código. Primero se detecta la colisión entre dos bolos y, al colisionar, intercambian sus velocidades en las direcciones x y y. Después ajustamos las posiciones de los bolos para que no se queden pegados, desplazándolos ligeramente en direcciones opuestas. El código que la IA me proporcionó fue este: 
