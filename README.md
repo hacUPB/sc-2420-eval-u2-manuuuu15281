@@ -500,7 +500,7 @@ void render(void) {
     SDL_RenderPresent(renderer);
 }
 ```
-## Actividad 2: Bolos aplicando Game Looping SDL2
+## Actividad 2: Bolos aplicando Game Looping SDL2 primmera parte 
 Para este juego pensé en simular un juego de bolos donde hayan ubicados unos cuadrados (bolos) en la parte superior de la aplicación de consola ubicados en una línea horizontal. En la parte inferior quiero ubicar la bola (circulo) centrada. A continuación las funcionalidades que debe tener el juego para simular correctamente los bolos: 
 
 **1. Para el movimiento de la Bola:**
@@ -512,13 +512,387 @@ En esta parte investigué con la IA y me recomendó implementar un condicional c
 **2. Lanzamiento de la Bola**
 
 Para esta parte, decidí que la bola se lanzara de manera vertical cuando se presionaba la tecla space (para este momento aún no sabía como implementar el mouse). 
-Usamos la función Update para programar el movimiento  de la bola de la siguiente manera: 
+Usé la función Update para programar el movimiento  de la bola de la siguiente manera: 
 
 ![image](https://github.com/user-attachments/assets/1d03f094-7214-4461-aa08-2ba577497fe8)
 
-El principal problema con ese ejercicio fue que los bolos (cuadrados) no rebotan entre si, solo se desaparecen cuando la bola colisiona alguno de los 5 bolos 
+El principal problema con ese ejercicio fue que los bolos (cuadrados) no rebotan entre si, solo se desaparecen cuando la bola colisiona alguno de los 5 bolos. Esta fue la primera forma (imagen a continuación) con la que traté de hacerlo, al probarlo en la consola no me funcionó así que para simular el golpe lo que hice fue que cuando la bola tocara el bolo este se desapareciera.
     
 ![image](https://github.com/user-attachments/assets/2bf61274-dbc1-4cf0-bf21-fdd485f884e2)
 
-**3. Collisiones y Resets**
+**3. Resets**
+
+Por ultimo hice que la bola volviera a su posición inicial luego de golpear con algún bolo para intentar otro tiro. Esto lo hice de la siguiente manera: 
+![image](https://github.com/user-attachments/assets/413fd193-152a-4949-bc91-221f20c788c0)
+
+**Código de esta primera versión de los Bolos**
+
+```c
+#include <stdio.h>
+#include <stdbool.h>
+#include <SDL.h>
+#include <math.h>
+
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+int game_is_running = false;
+SDL_Window* window = NULL;
+SDL_Renderer* renderer = NULL;
+
+// Posiciones y tamaños de los bolos
+float pin_width = 50;
+float pin_height = 50;
+float pin_spacing = 20;
+SDL_Rect pins[5];
+
+// Posiciones, velocidad y tamaño de la bola
+float ball_x = WINDOW_WIDTH / 2;
+float ball_y = WINDOW_HEIGHT - 50;
+float ball_radius = 25;
+float ball_vel_x = 0;
+float ball_vel_y = 0; // La velocidad vertical se establecerá al lanzar
+
+bool ball_launched = false; // Indica si la bola ha sido lanzada
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+int initialize_window(void) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+        fprintf(stderr, "Error initializing SDL.\n");
+        return false;
+    }
+    window = SDL_CreateWindow(
+        "Bowling Game with SDL2",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        0
+    );
+    if (!window) {
+        fprintf(stderr, "Error creating SDL Window.\n");
+        return false;
+    }
+    renderer = SDL_CreateRenderer(window, -1, 0);
+    if (!renderer) {
+        fprintf(stderr, "Error creating SDL Renderer.\n");
+        return false;
+    }
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+void setup(void) {
+    // Colocar los bolos (5 cuadrados) en la parte superior
+    float start_x = (WINDOW_WIDTH - (5 * pin_width + 4 * pin_spacing)) / 2;
+    for (int i = 0; i < 5; i++) {
+        pins[i].x = start_x + i * (pin_width + pin_spacing);
+        pins[i].y = 50;  // Altura fija en la parte superior
+        pins[i].w = pin_width;
+        pins[i].h = pin_height;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+void draw_circle(int center_x, int center_y, int radius) {
+    int x = radius;
+    int y = 0;
+    int radius_error = 1 - x;
+
+    while (x >= y) {
+        SDL_RenderDrawPoint(renderer, center_x + x, center_y + y);
+        SDL_RenderDrawPoint(renderer, center_x + y, center_y + x);
+        SDL_RenderDrawPoint(renderer, center_x - y, center_y + x);
+        SDL_RenderDrawPoint(renderer, center_x - x, center_y + y);
+        SDL_RenderDrawPoint(renderer, center_x - x, center_y - y);
+        SDL_RenderDrawPoint(renderer, center_x - y, center_y - x);
+        SDL_RenderDrawPoint(renderer, center_x + y, center_y - x);
+        SDL_RenderDrawPoint(renderer, center_x + x, center_y - y);
+
+        y++;
+        if (radius_error < 0) {
+            radius_error += 2 * y + 1;
+        }
+        else {
+            x--;
+            radius_error += 2 * (y - x + 1);
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+bool detect_collision(SDL_Rect pin, float ball_x, float ball_y, float ball_radius) {
+    float nearest_x = fmax(pin.x, fmin(ball_x, pin.x + pin.w));
+    float nearest_y = fmax(pin.y, fmin(ball_y, pin.y + pin.h));
+    float delta_x = ball_x - nearest_x;
+    float delta_y = ball_y - nearest_y;
+    return (delta_x * delta_x + delta_y * delta_y) < (ball_radius * ball_radius);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+void update(float delta_time) {
+    // Mover la bola hacia arriba si ha sido lanzada
+    if (ball_launched) {
+        ball_y += ball_vel_y * delta_time;
+
+        // Colisión con los bordes de la ventana
+        if (ball_x - ball_radius < 0 || ball_x + ball_radius > WINDOW_WIDTH) {
+            ball_vel_x = -ball_vel_x;  // Rebote horizontal
+        }
+
+        // Si la bola toca la parte superior de la pantalla, reiniciarla
+        if (ball_y - ball_radius < 0) {
+            ball_y = WINDOW_HEIGHT - 50;
+            ball_vel_y = 0;
+            ball_launched = false;  // Resetea el lanzamiento
+        }
+
+        // Detección de colisión con los bolos
+        for (int i = 0; i < 5; i++) {
+            if (detect_collision(pins[i], ball_x, ball_y, ball_radius)) {
+                pins[i].x = -100; // Mover el bolo fuera de la pantalla al colisionar. NO FUNCIONA 
+                pins[i].y = -100;
+            }
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+void render(void) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    // Dibujar los bolos
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    for (int i = 0; i < 5; i++) {
+        SDL_RenderFillRect(renderer, &pins[i]);
+    }
+
+    // Dibujar la bola (círculo)
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    draw_circle((int)ball_x, (int)ball_y, (int)ball_radius);
+
+    SDL_RenderPresent(renderer);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+void process_input(void) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            game_is_running = false;
+        }
+
+        if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+            case SDLK_LEFT:
+                if (!ball_launched) ball_x -= 10;  // Mover la bola a la izquierda
+                break;
+            case SDLK_RIGHT:
+                if (!ball_launched) ball_x += 10;  // Mover la bola a la derecha
+                break;
+            case SDLK_SPACE:
+                if (!ball_launched) {
+                    ball_vel_y = -300;  // Velocidad hacia arriba
+                    ball_launched = true;
+                }
+                break;
+            }
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+void destroy_window(void) {
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Main function
+///////////////////////////////////////////////////////////////////////////////
+int main(int argc, char* args[]) {
+    if (!initialize_window()) {
+        return -1;
+    }
+
+    setup();
+
+    int last_frame_time = SDL_GetTicks();
+    game_is_running = true;
+
+    while (game_is_running) {
+        process_input();
+
+        // Calcular delta time
+        int time_to_wait = 16; // Aproximadamente 60 FPS
+        int now = SDL_GetTicks();
+        int delta_time = now - last_frame_time;
+        if (delta_time < time_to_wait) {
+            SDL_Delay(time_to_wait - delta_time);
+            continue;
+        }
+        last_frame_time = now;
+
+        update(delta_time / 1000.0f);  // Convertir a segundos
+        render();
+    }
+
+    destroy_window();
+    return 0;
+}
+```
+
+## Bolos segunda parte
+Esta segunda parte nace de las correcciones que el profe Henry me hizo en clase, me indicó que tratara de implementar el mouse en mi juego y hacer que los bolos rebotaran en vez de desaparecer al tocar la bola. Para usar el mouse en el juego decidí cambiar la manera en que se lanza la bola, ahora no se posiciona la bola con las flechas de derecha e izquierda del teclado, se modificó para que la bola se desplace de un lado a otro de manera horizontal y al dar clic se lance la bola de manera vertical en dirección a los bolos. 
+Para esto le pregunté a la IA dos cosas puntuales: ¿cómo usar el mouse en SDL y cuales son las funciones que hay? y ¿cómo podía hacer que la bola  se moviera de lado a lado y que reaccionara al clic?
+La IA me ayudó efectivamente y esos dos cambios los hice de la siguiente manera: 
+
+**Implementación del mouse**
+
+En lugar de usar la tecla SPACE, ahora el evento SDL_MOUSEBUTTONDOWN se utiliza para detectar cuando se presiona un botón del mouse. Si la bola no ha sido lanzada, el clic del mouse hace que la bola se lance hacia arriba.
+![image](https://github.com/user-attachments/assets/79d26cb3-68b5-435b-8b32-ba7f34974116)
+
+**Movimiento horizontal automático de la Bola**
+
+La bola ahora se mueve automáticamente de izquierda a derecha y viceversa en la función update(). Si la bola toca el borde de la pantalla, su dirección cambia invirtiendo ball_vel_x.
+![image](https://github.com/user-attachments/assets/16dee29a-72c1-4ad8-adf8-863e03bfd743)
+
+Por ultimo, y lo que más me costo hacer fue el rebote de los bolos entre si mismos al toque de la bola. Lo maximo que logré fue que reaccionaran al toque de la bola y que entre los mismos bloques reaccionen si se llegan a tocar luego de que alguno de ellos sea golpeado por la bola. Aunque logré que esto sucediera se me presento otro problema, los bolos agarran una alta velocidad cuando se golpean enttre si y se empiezan a desplazar por toda la pantalla, esto hace que se golpeen todos con todos y se descontrolan completamente, algo como esto: 
+De esta manera comienza el juego: 
+![image](https://github.com/user-attachments/assets/c8722fb6-e010-40f3-82f0-11e321f8d683)
+
+y luego  de que la bola golpea un bolo y este golpea otro que esté cerca, comienza a verse así: 
+![image](https://github.com/user-attachments/assets/d46c70a5-c057-40cc-8ef5-ea998b30abf7)
+
+Finalmente no logré que se arreglara pero conseguí corregir lo que el profe Henry me sugirió. La IA me ayudó a montar la parte del codigo de las coliisiones entre bolos ya que había que aplicar varios conceptos de física y geometria que aunque conozco no se muy bien como aplicarlos en código. Primero se detecta la colisión entre dos bolos y, al colisionar, intercambian sus velocidades en las direcciones x y y. Después ajustamos las posiciones de los bolos para que no se queden pegados, desplazándolos ligeramente en direcciones opuestas. El código que la IA me proporcionó fue este: 
+
+```c
+///////////////////////////////////////////////////////////////////////////////
+// Detectar colisión entre dos objetos
+///////////////////////////////////////////////////////////////////////////////
+bool check_collision(GameObject a, GameObject b) {
+    return (a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Aplicar un rebote entre los bolos tras la colisión
+///////////////////////////////////////////////////////////////////////////////
+void resolve_collision(GameObject* a, GameObject* b) {
+    // Calculamos la diferencia de velocidades
+    float normal_x = b->x - a->x;
+    float normal_y = b->y - a->y;
+
+    // Normalizar el vector normal
+    float magnitude = sqrt(normal_x * normal_x + normal_y * normal_y);
+    if (magnitude == 0) return; // Evitar divisiones por cero
+
+    normal_x /= magnitude;
+    normal_y /= magnitude;
+
+    // Separar los bolos para que no se superpongan
+    float overlap = (a->width + b->width) / 2 - magnitude / 2;
+    a->x -= normal_x * overlap;
+    a->y -= normal_y * overlap;
+    b->x += normal_x * overlap;
+    b->y += normal_y * overlap;
+
+    // Intercambiar las velocidades en la dirección de la colisión
+    float relative_vel_x = b->vel_x - a->vel_x;
+    float relative_vel_y = b->vel_y - a->vel_y;
+
+    // Producto punto entre la velocidad relativa y el vector normal
+    float dot_product = (relative_vel_x * normal_x + relative_vel_y * normal_y);
+
+    // Asumimos coeficiente de restitución perfecto (rebote elástico)
+    float restitution = 1.0;
+
+    // Cambiar las velocidades a lo largo del vector normal
+    a->vel_x -= restitution * dot_product * normal_x;
+    a->vel_y -= restitution * dot_product * normal_y;
+    b->vel_x += restitution * dot_product * normal_x;
+    b->vel_y += restitution * dot_product * normal_y;
+
+    // Marcar los bolos como en movimiento
+    a->is_moving = true;
+    b->is_moving = true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Actualizar las posiciones de los objetos
+///////////////////////////////////////////////////////////////////////////////
+void update(float delta_time) {
+    // Movimiento de la bola de lado a lado
+    if (!ball_launched) {
+        ball.x += ball.vel_x * delta_time;
+        if (ball.x <= 0 || ball.x + ball.width >= WINDOW_WIDTH) {
+            ball.vel_x = -ball.vel_x; // Rebotar en las paredes
+        }
+    }
+
+    // Actualizar la posición de la bola si ha sido lanzada
+    ball.y += ball.vel_y * delta_time;
+
+    // Detectar colisiones con los bolos
+    for (int i = 0; i < 5; i++) {
+        if (check_collision(ball, pins[i])) {
+            // Transferir la velocidad de la bola al bolo en la misma dirección
+            if (!pins[i].is_moving) {
+                pins[i].vel_x = ball.vel_x * 0.5;  // El bolo adquiere la mitad de la velocidad de la bola en X
+                pins[i].vel_y = ball.vel_y * 0.5;  // El bolo adquiere la mitad de la velocidad de la bola en Y
+                pins[i].is_moving = true;  // Ahora el bolo está en movimiento
+            }
+
+            // Rebote simple: invertir la velocidad en Y al golpear un bolo
+            ball.vel_y = -ball.vel_y;
+        }
+    }
+
+    // Detectar colisiones entre los bolos
+    for (int i = 0; i < 5; i++) {
+        for (int j = i + 1; j < 5; j++) {
+            if (check_collision(pins[i], pins[j])) {
+                resolve_collision(&pins[i], &pins[j]);
+            }
+        }
+    }
+
+    // Actualizar la posición de los bolos que están en movimiento
+    for (int i = 0; i < 5; i++) {
+        if (pins[i].is_moving) {
+            pins[i].x += pins[i].vel_x * delta_time;
+            pins[i].y += pins[i].vel_y * delta_time;
+
+            // Hacer que los bolos reboten en las paredes
+            if (pins[i].x <= 0 || pins[i].x + pins[i].width >= WINDOW_WIDTH) {
+                pins[i].vel_x = -pins[i].vel_x;
+            }
+            if (pins[i].y <= 0 || pins[i].y + pins[i].height >= WINDOW_HEIGHT) {
+                pins[i].vel_y = -pins[i].vel_y;
+            }
+        }
+    }
+```
+
+
+
+
+
+
+
+
 
